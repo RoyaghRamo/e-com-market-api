@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Param,
@@ -12,51 +13,49 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { BaseController } from '../../../../common/base-components/base.controller';
-import { ProductEntity } from '../../../../entities/product.entity';
-import {
-  CreateProductDto,
-  UpdateProductDto,
-} from '../../../../common/dto/product.dto';
-import { Roles } from '../../../../common/decorators/roles.decorator';
-import { Role } from '../../../../common/enums/auth.enum';
-import {
-  IsOwnerGuard,
-  JwtGuard,
-  RolesGuard,
-} from '../../../../common/guards/auth.guard';
+import { CategoryEntity } from '../../../../entities/category.entity';
+import { CategoriesService } from '../services/categories.service';
 import {
   CustomHttpResponse,
   FetchResponse,
 } from '../../../../common/interfaces/http.response';
 import {
+  CreateCategoryDto,
+  UpdateCategoryDto,
+} from '../../../../common/dto/category.dto';
+import {
+  DeleteResult,
   SaveResult,
   UpdateResult,
 } from '../../../../common/interfaces/repo.responses';
-import { ProductsService } from '../services/products.service';
+import {
+  IsOwnerGuard,
+  JwtGuard,
+  RolesGuard,
+} from '../../../../common/guards/auth.guard';
+import { Roles } from '../../../../common/decorators/roles.decorator';
+import { Role } from '../../../../common/enums/auth.enum';
 import { getMetadataArgsStorage } from 'typeorm';
 import { prepareFilterAndSortField } from '../../../../common/helpers/general';
-import { CategoriesService } from '../../categories/services/categories.service';
 
-@Controller('product')
-export class ProductsController extends BaseController<ProductEntity> {
-  private readonly productSortFields: string[] = [];
-  private readonly productFilterFields: string[] = [];
+@Roles(Role.USER)
+@UseGuards(JwtGuard, RolesGuard)
+@Controller('category')
+export class CategoriesController extends BaseController<CategoryEntity> {
+  private readonly categorySortingFields: string[] = [];
+  private readonly categoryFilteringFields: string[] = [];
 
-  constructor(
-    private readonly productsService: ProductsService,
-    private readonly categoriesService: CategoriesService,
-  ) {
+  constructor(private readonly categoriesService: CategoriesService) {
     super();
-    this.productSortFields = ['price', 'quantity'];
     const propertyNames = getMetadataArgsStorage().columns.map((column) => {
       if (
-        column.target === ProductEntity &&
+        column.target === CategoryEntity &&
         column.propertyName !== undefined
       ) {
         return column.propertyName;
       }
     });
-    this.productFilterFields = propertyNames.filter(
+    this.categoryFilteringFields = propertyNames.filter(
       (name) => name !== undefined,
     );
   }
@@ -69,25 +68,25 @@ export class ProductsController extends BaseController<ProductEntity> {
     @Query('filter') filter: string,
     @Query('sort') sort: string,
   ) {
-    this.fetchResponse = new FetchResponse<ProductEntity>();
+    this.fetchResponse = new FetchResponse<CategoryEntity>();
 
     try {
       const { filterFields, sortFields } =
-        prepareFilterAndSortField<ProductEntity>(
-          this.productFilterFields,
-          this.productSortFields,
+        prepareFilterAndSortField<CategoryEntity>(
+          this.categoryFilteringFields,
+          this.categorySortingFields,
           filter,
           sort,
         );
 
-      const products = await this.productsService.getProducts({
+      const categories = await this.categoriesService.getCategories({
         page,
         limit,
         filterFields,
         sortFields,
       });
       this.fetchResponse.success = true;
-      this.fetchResponse.docs = products;
+      this.fetchResponse.docs = categories;
       return this.fetchResponse;
     } catch (e) {
       this.fetchResponse.errors.push(e);
@@ -96,21 +95,21 @@ export class ProductsController extends BaseController<ProductEntity> {
   }
 
   @Get(':id')
-  async getProduct(
+  async getCategory(
     @Param('id') id: number,
     // @Request() req,
-  ): Promise<FetchResponse<ProductEntity>> {
-    this.fetchResponse = new FetchResponse<ProductEntity>();
+  ): Promise<FetchResponse<CategoryEntity>> {
+    this.fetchResponse = new FetchResponse<CategoryEntity>();
 
     try {
-      const product = await this.productsService.getProductById(id);
-      if (!product) {
+      const category = await this.categoriesService.getCategoryById(id);
+      if (!category) {
         this.fetchResponse.errors.push('Forbidden Resource');
         throw new ForbiddenException(this.fetchResponse);
       }
 
       this.fetchResponse.success = true;
-      this.fetchResponse.docs = [product];
+      this.fetchResponse.docs = [category];
       return this.fetchResponse;
     } catch (e) {
       this.fetchResponse.errors.push(e);
@@ -118,32 +117,24 @@ export class ProductsController extends BaseController<ProductEntity> {
     }
   }
 
-  @Post('')
-  @Roles(Role.USER)
-  @UseGuards(JwtGuard, RolesGuard)
-  async createProduct(
+  @Post()
+  async createCategory(
     @Request() req,
-    @Body() createProductDto: CreateProductDto,
+    @Body() createCategoryDto: CreateCategoryDto,
   ) {
     this.response = new CustomHttpResponse();
 
     const userId = req.user.userId;
-    if (userId != createProductDto.userId) {
+    if (userId != createCategoryDto.userId) {
       this.response.errors.push('Forbidden Resource');
       throw new ForbiddenException(this.response);
     }
 
-    const categoryExists = await this.categoriesService.exists({
-      id: createProductDto.categoryId,
-    });
-    if (!categoryExists) {
-      this.response.errors.push('Invalid CategoryId!');
-      throw new BadRequestException(this.response);
-    }
-
     let saveResult: SaveResult;
     try {
-      saveResult = await this.productsService.createProduct(createProductDto);
+      saveResult = await this.categoriesService.createCategory(
+        createCategoryDto,
+      );
       this.response.success = true;
       return { ...this.response, ...saveResult };
     } catch (e) {
@@ -152,40 +143,51 @@ export class ProductsController extends BaseController<ProductEntity> {
     }
   }
 
-  @Roles(Role.USER)
-  @UseGuards(JwtGuard, RolesGuard, IsOwnerGuard)
   @Patch(':id')
-  async updateProduct(
+  @UseGuards(JwtGuard, RolesGuard, IsOwnerGuard)
+  async updateCategory(
     @Request() req,
     @Param('id') id: number,
-    @Body() updateProductDto: UpdateProductDto,
+    @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
     this.response = new CustomHttpResponse();
 
     const userId = req.user.userId;
-    const productExists = await this.productsService.exists({ id, userId });
-    if (!productExists) {
+    const categoryExists = await this.categoriesService.exists({ id, userId });
+    if (!categoryExists) {
       throw new ForbiddenException('Forbidden Resource');
-    }
-
-    if (updateProductDto.categoryId) {
-      const categoryExists = await this.categoriesService.exists({
-        id: updateProductDto.categoryId,
-      });
-      if (!categoryExists) {
-        this.response.errors.push('Invalid CategoryId!');
-        throw new BadRequestException(this.response);
-      }
     }
 
     let updateResult: UpdateResult;
     try {
-      updateResult = await this.productsService.updateProduct(
+      updateResult = await this.categoriesService.updateCategory(
         id,
-        updateProductDto,
+        updateCategoryDto,
       );
       this.response.success = true;
       return { ...this.response, ...updateResult };
+    } catch (e) {
+      this.response.errors.push(e);
+      throw new BadRequestException(this.response);
+    }
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtGuard, RolesGuard, IsOwnerGuard)
+  async deleteCategory(@Param('id') id: number, @Request() req) {
+    this.response = new CustomHttpResponse();
+
+    const userId = req.user.userId;
+    const adExists = await this.categoriesService.exists({ id, userId });
+    if (!adExists) {
+      throw new ForbiddenException('Forbidden Resource');
+    }
+
+    let deleteResult: DeleteResult;
+    try {
+      deleteResult = await this.categoriesService.deleteCategory(id);
+      this.response.success = true;
+      return { ...this.response, ...deleteResult };
     } catch (e) {
       this.response.errors.push(e);
       throw new BadRequestException(this.response);

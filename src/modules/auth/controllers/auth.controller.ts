@@ -3,7 +3,7 @@ import { AuthService } from '../services/auth.service';
 import { LoginDto, RegisterDto } from '../../../../common/dto/auth.dto';
 import { BaseController } from '../../../../common/base-components/base.controller';
 import { UserEntity } from '../../../../entities/user.entity';
-import { CustomHttpResponse } from '../../../../common/interfaces/http.responses';
+import { CustomHttpResponse } from '../../../../common/interfaces/http.response';
 
 @Controller('auth')
 export class AuthController extends BaseController<UserEntity> {

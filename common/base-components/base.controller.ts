@@ -1,7 +1,4 @@
-import {
-  CustomHttpResponse,
-  FetchResponse,
-} from '../interfaces/http.responses';
+import { CustomHttpResponse, FetchResponse } from '../interfaces/http.response';
 
 export abstract class BaseController<T> {
   protected response: CustomHttpResponse;
