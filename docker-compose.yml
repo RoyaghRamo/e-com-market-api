@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  db:
+    container_name: db
+    image: mysql:latest
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: e-com-market-db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: user
+    volumes:
+      - ./db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+  api:
+    container_name: api
+    restart: always
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: db
+      MODE: dev
+      PORT: 3000
+      HOST: http://localhost
+    volumes:
+      - api_log:/var/log
+    depends_on:
+      - db
+volumes:
+  api_log: { }

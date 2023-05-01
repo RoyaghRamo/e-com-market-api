@@ -36,3 +36,6 @@ lerna-debug.log*
 
 # Mysql Database Volume
 /db_data
+
+# Mysql Database Volume
+/db_data
