@@ -27,6 +27,16 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Project Description
+
+This is an E-Commerce Market Application. 
+The goal is to have a login/register, products & cart.
+For this purpose, I'll be implementing in this API the following:
+- Authentication
+- Products Management
+- Categories Management
+- Cart(Orders) Management
+
 ## Installation
 
 ```bash
