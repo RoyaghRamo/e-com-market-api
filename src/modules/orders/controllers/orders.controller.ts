@@ -188,8 +188,6 @@ export class OrdersController extends BaseController<OrderEntity> {
     @Param('id') id: number,
     @Body() updateOrderDto: UpdateOrderDto,
   ) {
-    console.log('updateOrderDto', updateOrderDto);
-
     this.response = new CustomHttpResponse();
 
     const userId = req.user.userId;
