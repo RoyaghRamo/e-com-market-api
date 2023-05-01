@@ -84,14 +84,26 @@ export class OrdersController extends BaseController<OrderEntity> {
 
       filterFields.userId = userId;
 
-      const categories = await this.ordersService.getOrders({
+      const orders = await this.ordersService.getOrders({
         page,
         limit,
         filterFields,
         sortFields,
       });
+      const cartOrders = [];
+
+      for (let i = 0; i < orders.length; i++) {
+        const product = await this.productsService.getProductById(
+          orders[i].productId,
+        );
+        cartOrders.push({
+          ...orders[i],
+          product,
+        });
+      }
+
       this.fetchResponse.success = true;
-      this.fetchResponse.docs = categories;
+      this.fetchResponse.docs = cartOrders;
       return this.fetchResponse;
     } catch (e) {
       this.fetchResponse.errors.push(e);
