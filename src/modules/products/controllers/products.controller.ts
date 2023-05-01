@@ -31,7 +31,7 @@ import {
 import {
   SaveResult,
   UpdateResult,
-} from '../../../../common/interfaces/repo.responses';
+} from '../../../../common/interfaces/repo.response';
 import { ProductsService } from '../services/products.service';
 import { getMetadataArgsStorage } from 'typeorm';
 import { prepareFilterAndSortField } from '../../../../common/helpers/general';

@@ -7,7 +7,7 @@ import {
   PaginationParams,
   SaveResult,
   UpdateResult,
-} from '../../../../common/interfaces/repo.responses';
+} from '../../../../common/interfaces/repo.response';
 import {
   CreateProductDto,
   UpdateProductDto,
